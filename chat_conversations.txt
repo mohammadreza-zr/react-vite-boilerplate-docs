@@ -1,0 +1,756 @@
+Pasted markdown(1).md
+File
+each feature is one module, so they should not import together
+but they can have sub feature
+also about core, core should contain all of the shared items, but i prefer to  use sub feature if only we need in 2 related feature
+
+
+now look at my md file and fix it, give me md format
+
+I've reviewed your architecture decisions. Instead of rewriting the entire document, I recommend replacing the following sections completely:
+
+3. Directory Structure
+5. Architecture Overview
+10. Adding a New Feature
+13. Important Rules & Gotchas
+Add a new section: Module Export Rules
+
+Use the following Markdown directly in your document.
+
+3. Directory Structure
+src/
+├── core/
+│   ├── constants/
+│   ├── data/
+│   ├── hooks/
+│   ├── lib/
+│   ├── providers/
+│   ├── schemas/
+│   ├── services/
+│   ├── store/
+│   ├── types/
+│   └── ui/
+│
+├── features/
+│   └── [feature]/
+│       ├── api/
+│       ├── components/
+│       ├── constants/
+│       ├── hooks/
+│       ├── lib/
+│       ├── schemas/
+│       ├── services/
+│       ├── store/
+│       ├── types/
+│       ├── sub-features/      # Optional
+│       └── index.ts
+│
+├── pages/
+├── router/
+├── assets/
+├── scripts/
+└── stories/
+Core
+
+The core directory contains all shared resources used across the application.
+
+Core is not limited to infrastructure. Any reusable implementation that is shared between multiple modules belongs in core.
+
+Examples:
+
+Shared services
+Shared hooks
+Shared schemas
+Shared UI components
+Shared utilities
+Shared types
+Shared stores
+Global providers
+
+A resource should only be moved to core when it is genuinely reusable.
+
+If a resource belongs to a single business module, it must remain inside that feature.
+
+Features
+
+Each feature represents a complete business module.
+
+Features are isolated by design and must not depend on each other.
+
+A feature may contain its own:
+
+feature/
+├── api/
+├── components/
+├── constants/
+├── hooks/
+├── lib/
+├── schemas/
+├── services/
+├── store/
+├── types/
+├── sub-features/
+└── index.ts
+
+Rule:
+
+Feature-specific code stays inside the feature.
+Shared code moves to core.
+Features must never import from other features.
+Sub-Features
+
+Large modules may be divided into sub-features.
+
+features/user-management/
+├── api/
+├── components/
+├── types/
+├── sub-features/
+│   ├── users/
+│   ├── roles/
+│   └── permissions/
+└── index.ts
+
+Sub-features are private implementation details of their parent feature and must not be imported directly from outside the feature.
+
+Pages
+
+Pages are route composition layers.
+
+Pages should only compose features and layouts.
+
+Pages must not contain business logic, API calls, state management, or domain-specific implementations.
+
+
+# 5. Architecture Overview
+
+## 5.1 Module Boundaries
+
+The application follows a modular architecture with strict feature isolation.
+
+```txt
+pages
+ └─► features
+       └─► core
+
+Allowed imports:
+
+pages
+ ├─► features
+ └─► core
+
+features
+ ├─► core
+ └─► own sub-features
+
+core
+ └─► core only
+
+Forbidden imports:
+
+feature-a ─► feature-b ❌
+feature-b ─► feature-a ❌
+
+core ─► features ❌
+core ─► pages ❌
+
+If functionality is needed by multiple unrelated features, move it to core.
+
+If functionality belongs to a specific business domain, keep it inside the feature and organize it using sub-features when necessary.
+
+5.2 State Management
+Server State
+TanStack React Query
+Feature State
+useState
+useReducer
+Feature-scoped stores
+Shared Application State
+core/store
+Global Providers
+core/providers
+
+React Query is the primary solution for server state management.
+
+Zustand is the only approved global state library when shared client-side state is required.
+
+
+# 10. Adding a New Feature
+
+## Step 1 — Create Feature Structure
+
+```txt
+src/features/billing/
+├── api/
+├── components/
+├── constants/
+├── hooks/
+├── lib/
+├── schemas/
+├── services/
+├── store/
+├── types/
+└── index.ts
+
+Only create folders that are actually required.
+
+Do not create empty folders preemptively.
+
+Step 2 — Implement Business Logic
+
+Place all business-specific code inside the feature.
+
+Examples:
+
+API hooks
+Components
+Validation schemas
+State stores
+Utilities
+Services
+
+Nothing should be placed in core unless it is genuinely shared.
+
+Step 3 — Export Feature
+// features/billing/index.tsx
+
+export default function BillingFeature() {
+  return <BillingPageContent />;
+}
+
+Each feature must expose a single public entry point.
+
+Step 4 — Create Page
+// pages/billing.tsx
+
+import BillingFeature from "@/features/billing";
+
+export default function BillingPage() {
+  return <BillingFeature />;
+}
+Step 5 — Register Route
+const BillingPage = lazy(() => import("@/pages/billing"));
+
+Feature integration is now complete.
+
+
+# 13. Important Rules & Gotchas
+
+## ✅ DO
+
+- Always use `apiService` for HTTP requests
+- Keep business logic inside features
+- Keep shared logic inside core
+- Create sub-features for large domains
+- Define query keys for every API module
+- Use TypeScript strict mode
+- Keep pages as composition layers
+- Import UI exclusively from `@/core/ui`
+- Use React Query for server state
+
+---
+
+## ❌ DON'T
+
+- Don't import one feature into another feature
+- Don't put business logic in pages
+- Don't bypass `apiService`
+- Don't use raw axios directly
+- Don't move feature-specific code into core prematurely
+- Don't expose sub-features publicly
+- Don't use `any`
+- Don't hardcode React Query keys
+
+---
+
+## ⚠️ Common Pitfalls
+
+### Shared Code Too Early
+
+Do not move code to `core` simply because it is used twice.
+
+First evaluate whether the functionality truly belongs to multiple business domains.
+
+### Feature Coupling
+
+Features must remain independent.
+
+Cross-feature imports create hidden dependencies and increase maintenance costs.
+
+### Incorrect Ownership
+
+A feature should own its business logic.
+
+Only reusable, domain-independent code belongs in `core`.
+
+### Query Key Inconsistency
+
+Always define and use feature query key factories.
+
+Never hardcode query keys inside components.
+Module Export Rules
+## Module Export Rules
+
+To keep imports predictable and maintainable, the project follows strict export conventions.
+
+### Core
+
+Core modules use named exports through `index.ts`.
+
+Example:
+
+```txt
+core/
+├── services/
+│   ├── api-service.ts
+│   └── index.ts
+│
+├── hooks/
+│   ├── use-mobile.ts
+│   └── index.ts
+
+Usage:
+
+import { apiService } from "@/core/services";
+import { useMobile } from "@/core/hooks";
+
+Preferred:
+
+import { apiService } from "@/core/services";
+
+Avoid:
+
+import { apiService } from "@/core/services/api-service";
+Features
+
+Every feature must expose a default export.
+
+// features/user-management/index.tsx
+
+export default function UserManagementFeature() {
+  return <UserManagement />;
+}
+
+Usage:
+
+import UserManagementFeature from "@/features/user-management";
+
+Named exports from feature root modules should be avoided.
+
+Pages
+
+All pages must use default exports.
+
+// pages/users.tsx
+
+export default function UsersPage() {
+  return <UserManagementFeature />;
+}
+
+Usage:
+
+const UsersPage = lazy(() => import("@/pages/users"));
+Sub-Features
+
+Sub-features are private.
+
+They must never be imported directly outside of their parent feature.
+
+Only the feature root (index.ts) is considered the public API of a feature.
+
+
+
+
+These changes make the document fully consistent with the architecture you've described:
+
+Feature-based modular architecture
+No feature-to-feature imports
+Shared code lives in core
+Sub-features for large domains
+Core uses index.ts aggregation
+Features use default exports
+Pages use default exports
+Strict ownership boundaries and clean public APIs.
+ok, nice. but how can i edit my md file?
+can you add and give me full edited md format? if not tell me lines
+
+I can do better than giving line numbers.
+
+Your document is large (~700+ lines), and changing sections manually will be error-prone. The cleanest approach is:
+
+Replace these sections entirely
+Current Section	Action
+## 3. Directory Structure	Replace completely
+## 5. Architecture Overview	Replace completely
+## 10. Adding a New Feature (Step-by-Step)	Replace completely
+## 13. Important Rules & Gotchas	Replace completely
+Add new section after ## 13	## Module Export Rules
+Update TOC	Add Module Export Rules entry
+Also fix these small inconsistencies
+Section 3
+
+Current:
+
+core/           # Global infrastructure and reusables (NO business logic)
+
+Replace with:
+
+core/           # Shared resources used across multiple modules
+Section 3 → Key Directories Explained
+
+Current:
+
+Contains framework-level infrastructure only.
+No business logic allowed.
+
+Replace with:
+
+Contains shared application resources used by multiple features.
+
+Core is not limited to infrastructure. Any reusable implementation
+that is shared across multiple business modules belongs here.
+Section 5.2
+
+Current:
+
+No Redux, Zustand, or other global state libraries
+unless explicitly approved.
+
+Replace with:
+
+React Query is the primary solution for server state.
+
+Zustand is the approved solution when shared client-side state
+is required.
+Section 13
+
+Current:
+
+❌ Don't use global state (Redux, Zustand) unless absolutely necessary
+
+Replace with:
+
+❌ Don't introduce additional state-management libraries
+❌ Prefer React Query before creating client-side stores
+❌ Use Zustand only when shared client-side state is required
+Section 14
+
+Current:
+
+Rule: All UI imports across the entire project must originate from @core/ui/....
+
+Replace with:
+
+Rule: All UI imports across the entire project must originate from @/core/ui/...
+
+because the rest of the document uses @/.
+
+One more architectural rule I'd add
+
+This matches what you've described but is not documented anywhere:
+
+## Feature Independence
+
+Features are isolated business modules.
+
+A feature must never import another feature.
+
+```txt
+feature-a → feature-b ❌
+feature-b → feature-a ❌
+
+If functionality is needed by multiple modules:
+
+Move it to core if it is generic and reusable.
+Create sub-features if it belongs to the same business domain.
+Do not create direct dependencies between features.
+
+This is probably the single most important rule in your architecture because it defines the module boundary.
+
+---
+
+If you want a **:contentReference[oaicite:0]{index=0}** (cleaned up, deduplicated, corrected examples, updated TOC, architecture rules merged, export rules integrated, and ready to commit as `DEVELOPER_GUIDE.md`), I can generate the complete polished markdown in one pass. That would be much cleaner than patching the current file section by section.
+Pasted markdown(2).md
+File
+read again and tell me step by step. this is very important
+
+I reread your architecture requirements from the conversation, and I think there are a few places where the document is still fighting itself.
+
+Before editing anything, I would define the architecture rules in this order, because everything else in the document should derive from these.
+
+Step 1 — Define ownership
+
+This is the most important rule.
+
+Feature owns business logic.
+Core owns shared logic.
+Page owns route composition.
+
+Questions for every file:
+
+Is this only used by one feature?
+→ Keep it inside that feature.
+
+Is this used by multiple unrelated features?
+→ Move it to core.
+
+Is this only used by related parts of a single feature?
+→ Create a sub-feature.
+
+Your current document doesn't state this clearly enough.
+
+Step 2 — Define feature boundaries
+
+From your description:
+
+feature-a → feature-b ❌
+feature-b → feature-a ❌
+
+Features are modules.
+
+Not folders.
+
+That's a huge distinction.
+
+A developer should think:
+
+Auth
+Users
+Billing
+Reports
+
+are independent products inside the application.
+
+The document should explicitly say:
+
+Features must never import from other features.
+
+If code must be shared:
+
+1. Move it to core.
+2. Or reorganize the business domain using sub-features.
+
+This should appear in Section 5 and Section 13.
+
+Step 3 — Define sub-features
+
+This is currently missing.
+
+You told me:
+
+if only we need in 2 related feature i prefer sub feature
+
+That means your architecture is actually:
+
+feature
+ ├─ sub-feature-a
+ ├─ sub-feature-b
+ └─ sub-feature-c
+
+Example:
+
+user-management
+├── users
+├── roles
+└── permissions
+
+Instead of:
+
+features/users
+features/roles
+features/permissions
+
+This is a very important architectural decision and should be documented.
+
+I would add a dedicated subsection:
+
+### When to Create a Sub-Feature
+
+Create a sub-feature when functionality belongs to the same business domain but has grown large enough to require separation.
+
+Do not create separate features simply to organize files.
+Step 4 — Fix the Core section
+
+Currently the docs say:
+
+Core = infrastructure
+
+But your architecture says:
+
+Core = shared resources
+
+Those are not the same thing.
+
+I would replace every occurrence of:
+
+framework-level infrastructure
+
+with:
+
+shared application resources
+
+throughout the document.
+
+Step 5 — Fix exports
+
+This is another important rule.
+
+From what you described:
+
+Core
+core/services/index.ts
+core/hooks/index.ts
+core/schemas/index.ts
+core/ui/index.ts
+
+Public API through index.ts.
+
+Usage:
+
+import { apiService } from "@/core/services";
+Features
+
+Always:
+
+export default ...
+
+Usage:
+
+import BillingFeature from "@/features/billing";
+Pages
+
+Always:
+
+export default ...
+
+Usage:
+
+lazy(() => import("@/pages/billing"))
+
+This deserves its own section.
+
+Step 6 — Fix the "Adding a Feature" guide
+
+Current guide is too simplistic.
+
+Because in your architecture:
+
+feature
+├── api
+├── hooks
+├── services
+├── schemas
+├── store
+├── components
+├── sub-features
+
+are all valid.
+
+So instead of:
+
+Create folders:
+api
+hooks
+types
+components
+
+write:
+
+Create only the folders required by the feature.
+
+Do not create empty folders.
+
+This matches the architecture better.
+
+Step 7 — Fix state management
+
+I noticed a contradiction.
+
+Current document:
+
+No Zustand
+
+Directory structure:
+
+core/store
+
+Those conflict.
+
+You need one rule.
+
+Based on your architecture I would write:
+
+React Query is the primary solution for server state.
+
+Feature state should remain inside the feature whenever possible.
+
+Shared client-side state may be stored in core/store using Zustand.
+Step 8 — Fix UI ownership
+
+This part is mostly correct.
+
+But I'd make it stricter:
+
+root ui/
+
+is installation-only.
+
+core/ui/
+
+is application UI.
+
+And then add:
+
+All application imports must originate from @/core/ui.
+
+Direct imports from the root ui folder are prohibited.
+Step 9 — Add Feature Independence section
+
+Honestly, this should be near the top of the document because it defines the whole architecture.
+
+Something like:
+
+## Architectural Principle
+
+Features are independent business modules.
+
+A feature must never depend on another feature.
+
+Shared functionality belongs in core.
+
+Related functionality belongs in sub-features.
+
+This rule takes precedence over all folder organization decisions.
+Step 10 — Update ESLint section
+
+Your document currently says:
+
+These rules are enforced by ESLint
+
+for naming.
+
+But your architecture has more important rules:
+
+Feature isolation
+Module boundaries
+Import restrictions
+Export conventions
+
+I would document that ESLint enforces:
+
+naming conventions
+feature boundaries
+import restrictions
+no cross-feature imports
+export conventions
+
+not just filename casing.
+
+If I were maintaining this boilerplate, I would treat these four rules as the foundation of the whole document:
+
+1. Features are independent modules.
+2. Core contains shared resources.
+3. Sub-features organize large business domains.
+4. Features and pages expose default exports.
+
+Everything else (folder structure, ESLint, imports, routing, state management) should be written to support those four rules.
